@@ -80,3 +80,55 @@ DELIVER** — end to end and offline. Everything on this list is real
 work that improves correctness, scale, or security, but none of it
 changes whether the judges see a working offline rescue flow on
 10 September.
+
+---
+
+## Think to Impact 3.0 decisions (20 Nov 2026)
+
+Made by team SELECT * from Winners while adapting the SIH prototype for a
+one-day ideathon with a live-demo round. Each one names what was rejected.
+
+### Closed-loop acknowledgement is the one new feature
+**Chosen:** responder "seen" and "dispatch" travel back to the victim's
+phone through the command node, as a `responder_status` envelope.
+**Rejected:** voice SOS, Kannada UI, LoRa, the greedy allocator in the UI.
+Each is either on the cut list above, needs hardware we don't have, or
+doesn't change what a judge sees. The acknowledgement fixes a real gap:
+the victim had no way to know they were heard, and the screen that
+pretended otherwise was scripted.
+
+### Remove fabricated UI rather than label it
+The tracking screen's hops, ETA, moving team marker and "Alpha Team, NDRF"
+card were removed, not disclaimed. A judge asking "is that real?" during a
+live demo is worse than a plainer screen. Copy that described radio relay
+("relay path", "mesh") was reworded to "command node" and "link".
+
+### Status updates are last-write-wins on the responder's clock
+Matches the sync layer's existing rule. Allows "Undo" on a dispatch. A
+stale update arriving late is ignored. Clock skew between two responder
+laptops could misorder updates. That is acceptable with one command node,
+and should be revisited with several (`TODO(post-sih)`).
+
+### "Seen" is sent when a responder opens the incident
+Rather than a separate "acknowledge" button. Opening it is the real event
+and costs the responder no extra tap. Sent once per incident per session.
+
+### `GET /sos/:id` returns status fields only
+The victim's phone needs status, team names and timestamps, not other
+people's phone numbers or medical data. The endpoint is unauthenticated
+like the rest of the demo, so it exposes nothing personal.
+
+### One-command launcher instead of fixing the Windows scripts
+`START_ALL.ps1` hard-coded one developer's folder and needed Docker.
+`pnpm demo` is cross-platform Node with no new dependencies. The old
+scripts are kept in `docs/sih-archive/` for reference.
+
+### Preflight runs its protocol checks on a throwaway server
+A self-test must not plant a fake SOS on the map the judges are about to
+see, so `pnpm demo:check` only reads from the live demo and drives the
+protocol against a second command node on :4100 with an empty temporary store.
+
+### The weather AI is out of the pitch
+`apps/ai` works but isn't reachable from the app's UI, needs a cached
+forecast fetched online, and needs a warm 2.5 GB model. It is mentioned
+as optional and advisory, never demoed.
