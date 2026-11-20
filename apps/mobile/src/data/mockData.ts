@@ -50,6 +50,13 @@ export interface SOSIncident {
   reporterName?: string;
   reporterPhone?: string;
   hopStatus: HopStatus;
+  /**
+   * Lifecycle as the command node last recorded it, and the teams a responder
+   * dispatched. Both come off the SOS document; a responder_status envelope
+   * updates them live.
+   */
+  status?: 'new' | 'acknowledged' | 'dispatched' | 'in_progress' | 'resolved' | 'closed';
+  assignedTeams?: string[];
 }
 
 export const MOCK_INCIDENTS: SOSIncident[] = [

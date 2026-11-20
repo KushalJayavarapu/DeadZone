@@ -5,3 +5,4 @@ export * from "./responder";
 export * from "./triage";
 export * from "./device";
 export * from "./envelope";
+export * from "./status";

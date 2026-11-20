@@ -7,6 +7,12 @@ interface Props {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   networkStatus: NetworkStatus;
+  /**
+   * Sends a responder_status envelope to the command node, which passes it on
+   * to the victim's phone. Rejects if it was not stored. Optional so the map
+   * still renders on its own.
+   */
+  onSendStatus?: (sosId: string, status: 'acknowledged' | 'dispatched', teams?: string[]) => Promise<void>;
 }
 
 const TRIAGE_BORDER: Record<string, string> = {
@@ -111,7 +117,7 @@ const RAIL_ORDER: Record<SOSIncident['triage'], number> = {
   BLACK: 3,
 };
 
-export default function MapView({ incidents, selectedId, onSelect, networkStatus }: Props) {
+export default function MapView({ incidents, selectedId, onSelect, networkStatus, onSendStatus }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
@@ -482,7 +488,7 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
 
             <MedicalPanel incident={selected} />
 
-            <TeamAssignment incidentId={selected.id} />
+            <TeamAssignment incident={selected} onSendStatus={onSendStatus} />
           </div>
         </>
       )}
@@ -596,26 +602,63 @@ const TEAM_STATUS: Record<string, { label: string; color: string }> = {
 /**
  * Team assignment for the selected incident, backed by MOCK_TEAMS.
  *
- * The distances and ETAs are representative figures carried on the mock
- * records, not measurements: nothing reports a team's position and there is no
- * routing in this build. Selection and dispatch are local to this panel --
- * no allocation runs, nothing is sent, and switching incident forgets it.
+ * The roster itself is a fictional demo roster: the distances and ETAs on
+ * MOCK_TEAMS are representative figures, not measurements, since nothing
+ * reports a team's position and there is no routing in this build.
+ *
+ * Dispatch is real, though (Think to Impact build): pressing it sends a
+ * `responder_status` envelope through the command node to the victim's phone,
+ * which shows the team names. The panel only shows "Dispatched" once the
+ * command node has acknowledged storing it; if it could not be sent, it says
+ * so instead. The dispatched state is read back from the incident, so it
+ * survives switching incident or reloading the dashboard.
  * TODO(post-sih): back this with a real responder roster and packages/triage's
  * allocate().
  */
-function TeamAssignment({ incidentId }: { incidentId: string }) {
+function TeamAssignment({
+  incident,
+  onSendStatus,
+}: {
+  incident: SOSIncident;
+  onSendStatus?: (sosId: string, status: 'acknowledged' | 'dispatched', teams?: string[]) => Promise<void>;
+}) {
+  const incidentId = incident.id;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
-  const [dispatched, setDispatched] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const dispatched = incident.status === 'dispatched' && Boolean(incident.assignedTeams?.length);
 
   // A different incident is a different assignment.
   useEffect(() => {
     setPicked([]);
-    setDispatched(false);
     setOpen(false);
     setQuery('');
+    setSendError(null);
   }, [incidentId]);
+
+  const teamLabel = (id: string) => {
+    const t = MOCK_TEAMS.find((x) => x.id === id);
+    return t ? `${t.name} · ${t.unit}` : id;
+  };
+
+  const send = async (status: 'acknowledged' | 'dispatched', teams: string[]) => {
+    if (!onSendStatus) {
+      setSendError('Not connected to the command node.');
+      return;
+    }
+    setSending(true);
+    setSendError(null);
+    try {
+      await onSendStatus(incidentId, status, teams);
+      if (status === 'acknowledged') setPicked([]);
+    } catch (err) {
+      setSendError(`Not sent: ${err instanceof Error ? err.message : String(err)}. Try again.`);
+    } finally {
+      setSending(false);
+    }
+  };
 
   const q = query.trim().toLowerCase();
   const matches = MOCK_TEAMS.filter(
@@ -632,13 +675,21 @@ function TeamAssignment({ incidentId }: { incidentId: string }) {
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   if (dispatched) {
+    const teams = incident.assignedTeams ?? [];
     return (
       <div className="w-full py-3 rounded-xl text-center" style={{ background: '#0D2818', border: '1px solid #30A46C44' }}>
         <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#30A46C' }}>
-          Dispatched — {picked.length} team{picked.length !== 1 ? 's' : ''} en route
+          Dispatched: {teams.join(', ')}
         </div>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: '#8A8A9A', marginTop: 2 }}>
+          Sent to the victim's phone through the command node
+        </div>
+        {sendError && (
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: '#E5484D', marginTop: 4 }}>{sendError}</div>
+        )}
         <button
-          onClick={() => { setDispatched(false); setPicked([]); }}
+          onClick={() => void send('acknowledged', [])}
+          disabled={sending}
           className="mt-1"
           style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: '#5A5A6A', background: 'none', border: 'none', cursor: 'pointer' }}
         >
@@ -705,8 +756,8 @@ function TeamAssignment({ incidentId }: { incidentId: string }) {
       )}
 
       <button
-        onClick={() => picked.length > 0 && setDispatched(true)}
-        disabled={picked.length === 0}
+        onClick={() => picked.length > 0 && !sending && void send('dispatched', picked.map(teamLabel))}
+        disabled={picked.length === 0 || sending}
         className="w-full py-4 rounded-xl font-black tracking-widest"
         style={{
           fontFamily: "'Barlow Condensed', sans-serif",
@@ -718,8 +769,11 @@ function TeamAssignment({ incidentId }: { incidentId: string }) {
           cursor: picked.length ? 'pointer' : 'not-allowed',
         }}
       >
-        DISPATCH{picked.length ? ` ${picked.length} TEAM${picked.length !== 1 ? 'S' : ''}` : ' TEAM'}
+        {sending ? 'SENDING…' : `DISPATCH${picked.length ? ` ${picked.length} TEAM${picked.length !== 1 ? 'S' : ''}` : ' TEAM'}`}
       </button>
+      {sendError && (
+        <div className="mt-2" style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#E5484D' }}>{sendError}</div>
+      )}
     </div>
   );
 }

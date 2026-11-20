@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 // ── Civilian UI ──────────────────────────────────────────────────────────────
 import MeshStrip from './components/ui/MeshStrip';
@@ -25,10 +25,10 @@ import LogisticsPanel from './components/responder/LogisticsPanel';
 
 import { MOCK_INCIDENTS, USE_MOCK_DATA, type SOSIncident, type NetworkStatus, type CoverageStatus } from './data/mockData';
 import { MeshClient } from './services/mesh';
-import { RESPONDER_CONFIG, getOrCreateDeviceId } from './config';
+import { RESPONDER_CONFIG, getOrCreateDeviceId, generateUUID } from './config';
 import { sosToIncident } from './services/incidents';
 import { clearProfile, hasProfile, saveProfile } from './services/profile';
-import type { SOSRequest } from '@deadzone/schema';
+import { ResponderStatusUpdateSchema, type Envelope, type ResponderStatusUpdate, type SOSRequest } from '@deadzone/schema';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Role = 'civilian' | 'responder' | null;
@@ -54,6 +54,12 @@ interface UserProfile {
   phone: string;
   location: string;
   role: 'civilian' | 'responder';
+}
+
+interface SentSOS {
+  sosId: string;
+  savedAt: string;
+  deliveredAt: string | null;
 }
 
 interface SOSData {
@@ -123,6 +129,12 @@ export default function App() {
   const [incidents, setIncidents] = useState<SOSIncident[]>(USE_MOCK_INCIDENTS ? MOCK_INCIDENTS : []);
   const [sosPending, setSosPending] = useState(false);
   const [sosData, setSOSData] = useState<Partial<SOSData>>({});
+  // The SOS the civilian just sent: its id is what the tracking screen listens
+  // for, and the timestamps are the real ones from SendingScreen.
+  const [sentSOS, setSentSOS] = useState<SentSOS | null>(null);
+  // Responder side: the open socket, so the map panel can send status back.
+  const responderMesh = useRef<MeshClient | null>(null);
+  const acknowledged = useRef<Set<string>>(new Set());
 
   const toggleNetwork = useCallback(() => {
     setNetworkStatus(s => s === 'offline' ? 'online' : 'offline');
@@ -152,9 +164,17 @@ export default function App() {
   const logout = useCallback(() => {
     clearProfile();
     setUser(null); setRole(null); setCivilianView('home');
-    setSosPending(false); setSOSData({});
+    setSosPending(false); setSOSData({}); setSentSOS(null);
   }, []);
 
+
+  const applyStatusLocally = useCallback((u: ResponderStatusUpdate) => {
+    setIncidents((prev) =>
+      prev.map((i) =>
+        i.id === u.sosId ? { ...i, status: u.status, assignedTeams: u.teams?.length ? u.teams : undefined } : i,
+      ),
+    );
+  }, []);
 
   // Responder view: take a snapshot of what the command node already holds,
   // then keep up via envelopes the server fans out over the mesh socket.
@@ -181,8 +201,14 @@ export default function App() {
       meshUrl: RESPONDER_CONFIG.meshUrl,
       deviceId: getOrCreateDeviceId(),
       onEnvelope: (envelope) => {
+        // Another responder acknowledged or dispatched: reflect it here too.
+        if (envelope.type === 'responder_status') {
+          const parsed = ResponderStatusUpdateSchema.safeParse(envelope.body);
+          if (parsed.success) applyStatusLocally(parsed.data);
+          return;
+        }
         const sos = envelope.body as SOSRequest | undefined;
-        if (!sos || typeof sos.id !== 'string') {
+        if (envelope.type !== 'sos' || !sos || typeof sos.id !== 'string') {
           console.warn('[responder] envelope carried no usable SOS body');
           return;
         }
@@ -194,13 +220,67 @@ export default function App() {
       },
       onError: (err) => console.error('[responder] mesh error:', err),
     });
+    responderMesh.current = client;
     client.connect().catch((err) => console.error('[responder] mesh connect failed:', err));
 
     return () => {
       cancelled = true;
+      responderMesh.current = null;
       client.disconnect();
     };
-  }, [role]);
+  }, [role, applyStatusLocally]);
+
+  /**
+   * Closed-loop acknowledgement (Think to Impact build): tell the command node,
+   * and through it the victim's phone, what a responder just did. Sent as a
+   * `responder_status` envelope over the same socket the SOS arrived on.
+   * Resolves once the command node has stored it (its ACK), and rejects
+   * otherwise, so the caller can show an honest "sent" / "not sent".
+   */
+  const sendStatus = useCallback(
+    async (sosId: string, status: ResponderStatusUpdate['status'], teams: string[] = []) => {
+      const client = responderMesh.current;
+      if (!client || !client.isConnected()) throw new Error('Not connected to the command node');
+      const incident = incidents.find((i) => i.id === sosId);
+      const update: ResponderStatusUpdate = {
+        sosId,
+        status,
+        teams,
+        ...(user?.name ? { responderName: user.name } : {}),
+        at: new Date().toISOString(),
+      };
+      const envelope: Envelope = {
+        id: generateUUID(),
+        orig: getOrCreateDeviceId(),
+        ts: update.at,
+        ttl: 0,
+        prio: 'high',
+        type: 'responder_status',
+        geo: { lat: incident?.lat ?? 12.9716, lng: incident?.lng ?? 77.5946 },
+        body: update,
+      };
+      await client.sendEnvelope(envelope);
+      applyStatusLocally(update);
+    },
+    [incidents, user, applyStatusLocally],
+  );
+
+  // Opening an incident is the responder actually looking at it, so that is
+  // when the victim is told "seen by a responder". Once per incident.
+  const selectIncident = useCallback(
+    (id: string | null) => {
+      setSelectedIncidentId(id);
+      if (!id || acknowledged.current.has(id)) return;
+      const inc = incidents.find((i) => i.id === id);
+      if (!inc || (inc.status && inc.status !== 'new')) return;
+      acknowledged.current.add(id);
+      sendStatus(id, 'acknowledged').catch((err) => {
+        acknowledged.current.delete(id);
+        console.warn('[responder] acknowledge not sent:', err);
+      });
+    },
+    [incidents, sendStatus],
+  );
 
   /* ── Login ───────────────────────────────────────────────────────────────── */
   if (!user) {
@@ -336,7 +416,7 @@ export default function App() {
               helpTypes={sosData.helpTypes ?? []}
               userName={user.name}
               userPhone={user.phone}
-              onDelivered={() => setCivilianView('live-track')}
+              onDelivered={(result) => { setSentSOS(result); setCivilianView('live-track'); }}
             />
           )}
 
@@ -345,6 +425,7 @@ export default function App() {
               severity={sosData.severity ?? 'critical'}
               people={sosData.people ?? 1}
               userName={user.name}
+              sent={sentSOS}
               onBack={() => { setSosPending(false); setCivilianView('home'); }}
             />
           )}
@@ -430,10 +511,10 @@ export default function App() {
         <main className="flex-1 overflow-hidden relative" style={{ minWidth: 0 }}>
           {incidents.length === 0 && responderView !== 'logistics' && <EmptyIncidents />}
           {incidents.length > 0 && responderView === 'map' && (
-            <MapView incidents={incidents} selectedId={selectedIncidentId} onSelect={setSelectedIncidentId} networkStatus={networkStatus} />
+            <MapView incidents={incidents} selectedId={selectedIncidentId} onSelect={selectIncident} networkStatus={networkStatus} onSendStatus={sendStatus} />
           )}
           {incidents.length > 0 && responderView === 'sos-list' && (
-            <SOSList incidents={incidents} onSelect={id => { setSelectedIncidentId(id); setResponderView('map'); }} />
+            <SOSList incidents={incidents} onSelect={id => { selectIncident(id); setResponderView('map'); }} />
           )}
           {incidents.length > 0 && responderView === 'triage' && (
             <TriageBoard incidents={incidents} onUpdate={setIncidents} />
