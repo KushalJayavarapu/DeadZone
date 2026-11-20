@@ -6,8 +6,6 @@
 
 This branch of DeadZone is the **Think to Impact 3.0** entry (Pragyan 2026, JSSATE Bengaluru, 21 Nov 2026) of team **SELECT \* from Winners**: Kushal Jayavarapu, Poorvi Holla and Samana.
 
-It builds on **DeadZone**, an MIT-licensed prototype that Harshit Reddy Alla's team (Silicon Syndicate) built for Smart India Hackathon 2026. [`CREDITS.md`](CREDITS.md) says exactly what came from that project and what this team added. Read it before presenting or re-using this work.
-
 ---
 
 ## The problem in one paragraph
@@ -91,13 +89,11 @@ docs/           architecture, demo runbook, decisions, pitch notes
 
 | File | Read it when |
 |---|---|
-| [`CREDITS.md`](CREDITS.md) | Before presenting: what is original work and what is ours |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | You need to explain how it works, or change it |
 | [`docs/DEMO.md`](docs/DEMO.md) | Setting up and running the live demo; something breaks |
 | [`docs/THINK-TO-IMPACT.md`](docs/THINK-TO-IMPACT.md) | Preparing the pitch: judging criteria, numbers, judge Q&A |
 | [`docs/decisions.md`](docs/decisions.md) | Why something is deliberately missing |
 | [`CLAUDE.md`](CLAUDE.md) | Working on the code with an AI assistant: settled rules and guardrails |
-| [`docs/sih-archive/`](docs/sih-archive/) | History: the original SIH sprint logs, rehearsal notes and Windows scripts |
 
 ## Status and licence
 

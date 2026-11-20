@@ -42,7 +42,7 @@ There is one app (`apps/mobile`) with two roles chosen at login. Everything the 
 
 ## Transport reality
 
-This is the part most often described wrongly, including in the original SIH deck.
+This is the part most often described wrongly.
 
 - The app is a **web page in a phone browser**. A browser cannot use Bluetooth Low Energy scanning, Android Nearby Connections, Wi-Fi Direct, LoRa or signal strength (RSSI). None of those are used.
 - Each phone holds **one WebSocket** to the command node over the laptop's Wi-Fi hotspot. There is **no device-to-device relay**: an SOS goes phone → laptop, one hop. The `ttl` field on the envelope is reserved and never acted on.

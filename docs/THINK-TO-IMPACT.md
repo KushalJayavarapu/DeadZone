@@ -12,7 +12,7 @@ This file is the source behind the deck. It covers how we're judged, what we cla
 |---|---|---|
 | 1 · Pitch, 10:00 AM | **10 min hard cap**, PPT/PDF | Five criteria, **10 points each, equally weighted**: Real-world use · Feasibility · Sustainability · Strengths · Challenges thought through |
 | 2 · Live demo, 2:30 PM (shortlist only) | Working prototype, hardware or software | A working model. Bring an offline backup (video/screenshots) |
-| Rules | 0% plagiarism tolerance · judges' decisions final | We build on an MIT project. Credit it on slide 2 and the last slide, and state our additions plainly |
+| Rules | 0% plagiarism tolerance · judges' decisions final | Every claim maps to code, a test or a live step |
 
 Since all five criteria are worth the same, the deck spends roughly equal time on each. "Challenges" is the one teams usually skimp on, so it is our cheapest place to beat other teams.
 
@@ -76,25 +76,12 @@ Since all five criteria are worth the same, the deck spends roughly equal time o
 | **GPS needs HTTPS** | Demo phone flag. Approximate fallback that is labelled as such. | HTTPS on the command node, installable PWA |
 | **Android drops "no-internet" Wi-Fi** | "Stay connected" step in the runbook | Captive-portal handling |
 | **Privacy of medical data** | The victim's catch-up endpoint returns status only, with no phone or medical fields | Encryption at rest, role-based access |
-| **Language and literacy** | Big icons, three taps | Kannada/Hindi UI strings (the original planned Hindi), voice prompts |
+| **Language and literacy** | Big icons, three taps | Kannada/Hindi UI strings (Hindi was planned earlier), voice prompts |
 | **Adoption by government teams** | Builds on START, a protocol responders already know | Pilot in a DDMA mock drill, feedback from NDRF/SDRF |
 
 ---
 
-## Attribution: say it, don't hide it
-
-Say it on slide 2 and repeat it on the closing slide:
-
-> "DeadZone started as an open-source Smart India Hackathon prototype by Harshit Reddy Alla's team, released under MIT. We took it further. We made it honest, made it demo-reliable, and added the missing half of the conversation: telling the victim that help is coming."
-
-Our own contribution, in one breath: **closed-loop acknowledgement, a one-command demo with a 14-point self-test, four bugs fixed, and the honesty pass.** Details are in [`CREDITS.md`](../CREDITS.md).
-
----
-
 ## Judge Q&A: likely questions, straight answers
-
-**"Is this your idea?"**
-The base idea and prototype came from an open-source SIH project, credited on our slides. What we built is the victim-side acknowledgement and dispatch loop, plus demo reliability and fixes. We can show our commits.
 
 **"How far does it reach?"**
 As far as the laptop's Wi-Fi hotspot. The app doesn't invent a number because it can't measure distance. In the field you extend it with a better access point, not with a different app.

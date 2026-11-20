@@ -85,7 +85,7 @@ changes whether the judges see a working offline rescue flow on
 
 ## Think to Impact 3.0 decisions (20 Nov 2026)
 
-Made by team SELECT * from Winners while adapting the SIH prototype for a
+Made by team SELECT * from Winners while adapting the prototype for a
 one-day ideathon with a live-demo round. Each one names what was rejected.
 
 ### Closed-loop acknowledgement is the one new feature
@@ -121,7 +121,7 @@ like the rest of the demo, so it exposes nothing personal.
 ### One-command launcher instead of fixing the Windows scripts
 `START_ALL.ps1` hard-coded one developer's folder and needed Docker.
 `pnpm demo` is cross-platform Node with no new dependencies. The old
-scripts are kept in `docs/sih-archive/` for reference.
+scripts were removed.
 
 ### Preflight runs its protocol checks on a throwaway server
 A self-test must not plant a fake SOS on the map the judges are about to
