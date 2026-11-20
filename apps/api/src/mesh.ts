@@ -6,11 +6,17 @@ import {
   PeerTable,
   type PeerHeartbeatPayload,
 } from "@deadzone/comms";
-import type { Envelope, SOSRequest } from "@deadzone/schema";
+import {
+  ResponderStatusUpdateSchema,
+  SOSRequestSchema,
+  type Envelope,
+  type SOSRequest,
+} from "@deadzone/schema";
+import { applyStatusUpdate } from "./status";
 
 /**
  * Mesh server: WebSocket endpoint at /mesh for LAN-based peer-to-peer
- * message passing. One relay hop maximum (see CLAUDE.md cut list).
+ * message passing. No relaying of any kind (see CLAUDE.md cut list).
  *
  * Every message is an Envelope; the server validates it against the schema,
  * writes it to PouchDB using the envelope.id as _id (dedup for free), echoes
@@ -97,20 +103,11 @@ async function handleClient(ws: WebSocket, config: MeshServerConfig, clients: Se
       });
     }
 
-    // Store the envelope in PouchDB
-    try {
-      await config.db.put({
-        ...envelope.body,
-        _id: envelope.id,
-      } as SOSRequest);
-    } catch (err) {
-      if ((err as { status: number }).status === 409) {
-        // Document already exists (same envelope, same UUID) -- idempotent
-      } else {
-        console.error("[mesh] failed to write envelope:", err);
-        ws.send(JSON.stringify({ type: "error", message: "Failed to store message" }));
-        return;
-      }
+    // Store the envelope in PouchDB. What "store" means depends on the type.
+    const stored = await storeEnvelope(config.db, envelope);
+    if (!stored.ok) {
+      ws.send(JSON.stringify({ type: "error", message: stored.message, envelopeId: envelope.id }));
+      return;
     }
 
     // Echo an ACK to the sender.
@@ -137,4 +134,67 @@ async function handleClient(ws: WebSocket, config: MeshServerConfig, clients: Se
   ws.on("error", (err) => {
     console.error("[mesh] client error:", err);
   });
+}
+
+type StoreResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * Persists one envelope on the command node.
+ *
+ * - `sos`: the body is the SOS record, stored with the envelope id as `_id`,
+ *   so the same SOS delivered twice collapses to one document (409 = already
+ *   have it, which is success).
+ * - `responder_status`: a responder acknowledging or dispatching. Applied to
+ *   the SOS it names, last-write-wins on the responder's timestamp
+ *   (status.ts). A duplicate or stale update is accepted and changes nothing.
+ *
+ * Before this function existed every envelope body was written as if it were
+ * an SOS, whatever its type -- harmless only because nothing but SOS was ever
+ * sent.
+ */
+async function storeEnvelope(db: PouchDB.Database<SOSRequest>, envelope: Envelope): Promise<StoreResult> {
+  if (envelope.type === "sos") {
+    const sos = SOSRequestSchema.safeParse(envelope.body);
+    if (!sos.success) return { ok: false, message: "SOS body failed validation" };
+    try {
+      await db.put({ ...sos.data, _id: envelope.id });
+    } catch (err) {
+      if ((err as { status?: number }).status !== 409) {
+        console.error("[mesh] failed to write SOS:", err);
+        return { ok: false, message: "Failed to store message" };
+      }
+      // Already stored (same envelope, same UUID) -- idempotent.
+    }
+    return { ok: true };
+  }
+
+  if (envelope.type === "responder_status") {
+    const update = ResponderStatusUpdateSchema.safeParse(envelope.body);
+    if (!update.success) return { ok: false, message: "Status update failed validation" };
+    // Two responders pressing at once can race on _rev; retry a couple of
+    // times rather than dropping the update.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let doc: PouchDB.Core.ExistingDocument<SOSRequest>;
+      try {
+        doc = await db.get(update.data.sosId);
+      } catch {
+        return { ok: false, message: "No SOS with that id on the command node" };
+      }
+      const next = applyStatusUpdate(doc, update.data);
+      if (!next) return { ok: true }; // stale or duplicate: nothing to change
+      try {
+        await db.put(next);
+        console.log(`[mesh] ${update.data.sosId} -> ${update.data.status}`);
+        return { ok: true };
+      } catch (err) {
+        if ((err as { status?: number }).status !== 409) {
+          console.error("[mesh] failed to apply status update:", err);
+          return { ok: false, message: "Failed to store status update" };
+        }
+      }
+    }
+    return { ok: false, message: "Status update kept conflicting; try again" };
+  }
+
+  return { ok: false, message: `Envelope type "${envelope.type}" is not handled by the command node` };
 }

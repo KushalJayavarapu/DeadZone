@@ -1,10 +1,12 @@
 import os from "node:os";
+import { mkdirSync } from "node:fs";
 import { createServer } from "http";
 import express from "express";
 import PouchDB from "pouchdb";
 import { PeerTable } from "@deadzone/comms";
 import { couchDbUrl, getCouchConfig, remotePouchDbOptions } from "../scripts/couchdb";
 import { attachMeshServer } from "./mesh";
+import { publicStatus } from "./status";
 
 /**
  * DeadZone coordination server. Runs on the responder's laptop,
@@ -26,14 +28,26 @@ async function main() {
   });
 
   // Initialize PouchDB (local + remote sync)
-  const db = new PouchDB<any>(`.data/local`);
-  const remote = new PouchDB<any>(couchDbUrl(config), remotePouchDbOptions(config));
+  // LevelDB will not create a missing parent directory, and .data/ is
+  // gitignored, so on a fresh clone every write failed with "IO error:
+  // .data/local/LOCK" until someone happened to run the seed script first.
+  // DEADZONE_DATA_DIR lets the preflight check (scripts/preflight.mjs) run a
+  // throwaway server without touching the demo's real records.
+  const dataDir = process.env.DEADZONE_DATA_DIR ?? ".data";
+  mkdirSync(dataDir, { recursive: true });
+  const db = new PouchDB<any>(`${dataDir}/local`);
 
-  // Start continuous replication to the remote
-  db.sync(remote, { live: true, retry: true })
-    .on("error", (err) => console.error("[sync] error:", err))
-    .on("paused", (err) => console.log("[sync] paused:", err))
-    .on("active", () => console.log("[sync] active"));
+  // Continuous replication to the central CouchDB, when one is reachable. With
+  // no CouchDB (the normal state in the field and at a demo table) this just
+  // retries quietly in the background; nothing waits on it.
+  // COUCHDB_SYNC=off skips it entirely.
+  if (process.env.COUCHDB_SYNC !== "off") {
+    const remote = new PouchDB<any>(couchDbUrl(config), remotePouchDbOptions(config));
+    db.sync(remote, { live: true, retry: true })
+      .on("error", (err) => console.error("[sync] error:", err))
+      .on("paused", (err) => console.log(err ? `[sync] paused: ${err}` : "[sync] paused (up to date, or CouchDB unreachable -- retrying)"))
+      .on("active", () => console.log("[sync] active"));
+  }
 
   // Snapshot for a dashboard that connects after an SOS was already sent, or
   // that reloads mid-incident. The mesh fan-out is the live path; this is what
@@ -47,6 +61,24 @@ async function main() {
       res.json(docs);
     } catch (err) {
       console.error("[api] /sos failed:", err);
+      res.status(500).json({ error: "Could not read the local store" });
+    }
+  });
+
+  // One SOS's status, for the victim's tracking screen. The phone calls this
+  // whenever its socket (re)connects, so a dispatch that happened while the
+  // phone was out of reach still shows up. Returns only status fields -- not
+  // the reporter's phone number or medical profile.
+  app.get("/sos/:id", async (req, res) => {
+    try {
+      const doc = await db.get(req.params.id);
+      res.json(publicStatus(doc));
+    } catch (err) {
+      if ((err as { status?: number }).status === 404) {
+        res.status(404).json({ error: "Not on the command node yet" });
+        return;
+      }
+      console.error("[api] /sos/:id failed:", err);
       res.status(500).json({ error: "Could not read the local store" });
     }
   });
@@ -79,7 +111,11 @@ async function main() {
   httpServer.listen(PORT, HOST, () => {
     console.log(`DeadZone coordination server listening on ${HOST}:${PORT}`);
     console.log(`Reachable from phones at: ws://${lanIp}:${PORT}/mesh`);
-    console.log(`Remote CouchDB: ${couchDbUrl(config)}`);
+    console.log(
+      process.env.COUCHDB_SYNC === "off"
+        ? "Remote CouchDB sync: off"
+        : `Remote CouchDB (synced when reachable): ${couchDbUrl(config)}`,
+    );
   });
 }
 

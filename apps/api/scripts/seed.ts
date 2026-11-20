@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import PouchDB from "pouchdb";
 import { SOSRequestSchema, type SOSRequest } from "@deadzone/schema";
@@ -34,8 +34,29 @@ async function loadSeedRecords(): Promise<SOSRequest[]> {
   });
 }
 
+/**
+ * The seed file's timestamps are fixed dates, so a month later every demo
+ * incident read "77 d ago" on the dashboard. Shift them all by the same amount
+ * so the newest seed incident is 10 minutes old as of now. Relative order and
+ * spacing are kept; only the anchor moves. SEED_KEEP_DATES=1 skips this.
+ */
+function rebaseTimestamps(records: SOSRequest[]): SOSRequest[] {
+  if (process.env.SEED_KEEP_DATES === "1" || records.length === 0) return records;
+  const newest = Math.max(...records.map((r) => Date.parse(r.updatedAt ?? r.createdAt)));
+  const shift = Date.now() - 10 * 60_000 - newest;
+  const move = (iso: string) => new Date(Date.parse(iso) + shift).toISOString();
+  return records.map((r) => ({
+    ...r,
+    createdAt: move(r.createdAt),
+    ...(r.updatedAt ? { updatedAt: move(r.updatedAt) } : {}),
+  }));
+}
+
 async function main() {
-  const records = await loadSeedRecords();
+  const records = rebaseTimestamps(await loadSeedRecords());
+  // LevelDB won't create the missing parent (.data/ is gitignored), so on a
+  // fresh clone this failed with "IO error: .data/local/LOCK".
+  await mkdir(path.dirname(LOCAL_DB_PATH), { recursive: true });
   const db = new PouchDB<SOSRequest>(LOCAL_DB_PATH);
 
   for (const record of records) {

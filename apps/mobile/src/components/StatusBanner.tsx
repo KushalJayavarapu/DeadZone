@@ -8,9 +8,9 @@ interface Props {
 }
 
 function meshLabel(coverage: CoverageStatus): string {
-  if (coverage === 'green') return 'MESH: CONNECTED';
-  if (coverage === 'amber') return 'MESH: WEAK LINK';
-  return 'MESH: NO PATH';
+  if (coverage === 'green') return 'FIELD NETWORK: CONNECTED';
+  if (coverage === 'amber') return 'FIELD NETWORK: WEAK LINK';
+  return 'FIELD NETWORK: NO LINK';
 }
 
 export default function StatusBanner({ internetStatus, coverageStatus, onToggle }: Props) {

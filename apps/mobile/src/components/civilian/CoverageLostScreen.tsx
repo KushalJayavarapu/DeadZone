@@ -149,7 +149,7 @@ export default function CoverageLostScreen({ onBack, onGuideBack, onSOSQueued }:
       >
         <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#E5484D', animation: 'dot-blink 1.2s ease-in-out infinite', flexShrink: 0 }} />
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500, color: '#E5484D' }}>
-          No relay path — out of coverage
+          No link to the command node
         </span>
       </div>
 
@@ -189,7 +189,7 @@ export default function CoverageLostScreen({ onBack, onGuideBack, onSOSQueued }:
             margin: '0 0 8px',
           }}
         >
-          You've left relay coverage.
+          You've lost the command node.
         </h1>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: '#8A97AC', margin: '0 0 24px', lineHeight: 1.5 }}>
           Your SOS can't reach a responder from here.
@@ -257,7 +257,7 @@ export default function CoverageLostScreen({ onBack, onGuideBack, onSOSQueued }:
               textAlign: 'center',
             }}
           >
-            SOS queued — will send when relay is found
+            SOS saved — will send when the link returns
           </div>
         )}
       </div>

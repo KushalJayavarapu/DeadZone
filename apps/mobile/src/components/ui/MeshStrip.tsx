@@ -28,9 +28,9 @@ const SPARKLINE: Record<CoverageStatus, number[]> = {
 };
 
 const CFG = {
-  green: { dot: '#30A46C', label: 'Mesh strong' },
-  amber: { dot: '#F5A524', label: 'Mesh weakening' },
-  red:   { dot: '#E5484D', label: 'No relay path' },
+  green: { dot: '#30A46C', label: 'Link strong' },
+  amber: { dot: '#F5A524', label: 'Link weakening' },
+  red:   { dot: '#E5484D', label: 'No link' },
 };
 
 /**
@@ -129,7 +129,7 @@ export default function MeshStrip({ status: initialStatus, deviceCount: initialC
 
   const label =
     coverage === 'red'
-      ? 'No relay path'
+      ? 'No link to command node'
       : `${cfg.label} · ${deviceCount} device${deviceCount !== 1 ? 's' : ''}`;
 
   return (

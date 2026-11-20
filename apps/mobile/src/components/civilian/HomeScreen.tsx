@@ -253,10 +253,10 @@ function WeakeningToast({ onDismiss, onGuideBack }: { onDismiss: () => void; onG
       }}
     >
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: '#E6EAF2', fontWeight: 500, marginBottom: 2 }}>
-        Signal weakening — the relay link is going stale.
+        Link weakening — the command node has gone quiet.
       </p>
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#8A97AC', marginBottom: 12 }}>
-        You are moving away from the relay area.
+        You may be moving out of the hotspot's reach.
       </p>
       <div style={{ display: 'flex', gap: 12 }}>
         <button
@@ -391,7 +391,7 @@ export default function HomeScreen({
                 1 SOS queued
               </p>
               <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#8A97AC', marginTop: 2 }}>
-                Waiting for a relay — will send automatically
+                Waiting for the command node — will send automatically
               </p>
               <button
                 onClick={onGuideBack}

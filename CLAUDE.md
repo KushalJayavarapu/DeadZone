@@ -6,7 +6,7 @@ Standing context for Claude Code on this repo. Read before any task.
 
 ## What this is
 
-**DeadZone** — an offline-first disaster response app for Smart India Hackathon 2026.
+**DeadZone** — an offline-first disaster response app, originally built for Smart India Hackathon 2026 by Harshit Reddy Alla's team, and carried forward by team SELECT * from Winners for **Think to Impact 3.0** (Pragyan 2026, 21 Nov 2026). Who built what is in `CREDITS.md`; keep it accurate when you add work.
 
 Core claim: when cellular and internet fail, victims can still send an SOS, responders still coordinate, and everything syncs once a link returns.
 
@@ -15,11 +15,15 @@ One-line pitch: *"When networks go down, DeadZone keeps rescue operations moving
 The narrative spine, used in the pitch, the demo order, and the build order:
 **COMMUNICATE → UNDERSTAND → PRIORITISE → COORDINATE → DELIVER**
 
+For Think to Impact the spine is told as **COMMUNICATE → PRIORITISE → COORDINATE → CLOSE THE LOOP → DELIVER**: the weather AI (UNDERSTAND) is not in the app UI, so it is not demoed, and the closed-loop acknowledgement to the victim is this team's addition. Pitch material: `docs/THINK-TO-IMPACT.md`; stage runbook: `docs/DEMO.md`.
+
 ---
 
 ## Deadline reality
 
-**Demo deadline: 10 September 2026.** Grand Finale is December.
+**Current: Think to Impact 3.0, Saturday 21 November 2026** — Round 1 a 10-minute pitch judged equally on real-world use, feasibility, sustainability, strengths and challenges; Round 2 a live demo. 0% plagiarism tolerance, hence `CREDITS.md`.
+
+*Historical: SIH demo deadline was 10 September 2026; the sprint guidance below dates from then and still holds.*
 
 This is a six-day sprint, not a product build. Bias every decision toward: fewer features, working reliably, demonstrable offline. A judge who watches one SOS cross three phones in airplane mode and then sync will remember it. Five half-working features leave nothing behind.
 
@@ -77,7 +81,7 @@ Decided deliberately. If a task seems to need one of these, stop and ask rather 
 
 - **Zod schemas are the source of truth.** Always `export const XSchema = z.object(...)` then `export type X = z.infer<typeof XSchema>`. Never hand-write a type that duplicates a schema.
 - `packages/schema` is the contract. Changes there affect every package — flag them explicitly rather than editing quietly.
-- Everything must pass `pnpm typecheck` before it is considered done.
+- Everything must pass `pnpm typecheck` and `pnpm test` before it is considered done. Before any demo, `pnpm demo:check` must pass.
 - Offline-first means **write locally first, always.** No code path may require a network call to succeed.
 - No hardcoded colours. Styling goes through tokens in `packages/ui` so external design can be applied late.
 - Seed data lives in `data/seed/` and is clearly fictional. Bengaluru-area coordinates.
@@ -90,8 +94,8 @@ Decided deliberately. If a task seems to need one of these, stop and ask rather 
 apps/
   mobile/       Vite React web app — civilian + responder
   api/          Express coordination + sync
-  dashboard/    placeholder
-  ai/           placeholder
+  dashboard/    offline map tile server (tiles, glyphs, sprites)
+  ai/           optional weather explainer (Ollama); not in the demo
 packages/
   schema/       Zod contracts — source of truth
   comms/        envelope, peer table, transport
@@ -99,14 +103,15 @@ packages/
   ui/           placeholder — design tokens
 data/seed/      fictional demo records
 infra/          docker-compose (CouchDB)
-docs/           strategy, internals, sprint, decisions
+docs/           ARCHITECTURE, DEMO (runbook), THINK-TO-IMPACT (pitch), decisions; sih-archive/ = SIH-era logs
+scripts/        demo.mjs (pnpm demo), preflight.mjs (pnpm demo:check), capture-demo.cjs (backup)
 ```
 
 ---
 
 ## Guardrails
 
-- **Never modify `apps/mobile` unless a task says so explicitly.** It is a Figma Make export (see its Figma plugins in `vite.config.ts`) and may be edited there concurrently; unannounced edits get overwritten or cause conflicts. There is no native build — that was the old reason, and it no longer applies.
+- **Never modify `apps/mobile` unless a task says so explicitly.** It is a Figma Make export (see its Figma plugins in `vite.config.ts`) and may be edited there concurrently; unannounced edits get overwritten or cause conflicts. There is no native build — that was the old reason, and it no longer applies. (Wolf / Kushal explicitly approved the Think to Impact edits on 20 Nov 2026: LiveTracking, SendingScreen, App, MapView, copy fixes. Ask again for new work there.)
 - Do not add dependencies beyond what the current task strictly needs. Every dependency is a Vite bundling risk this week.
 - Do not scaffold ahead. Placeholder directories stay empty until their task arrives.
 - Do not "helpfully" implement cut-list items.

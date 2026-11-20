@@ -17,7 +17,13 @@ interface Props {
    * had no way to call the person back.
    */
   userPhone?: string;
-  onDelivered: () => void;
+  /**
+   * Called when this screen is done, delivered or not. Carries the real
+   * timestamps so the tracking screen shows what actually happened:
+   * `deliveredAt` is when the command node's ACK arrived, null if it never did
+   * (the SOS is then still queued on this phone and goes on reconnect).
+   */
+  onDelivered: (result: { sosId: string; savedAt: string; deliveredAt: string | null }) => void;
 }
 
 // One network hop: this device -> the command node. There is no
@@ -170,17 +176,18 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
         timers.push(setTimeout(() => { setPhase('relaying'); setLitNodes(2); }, 900));
 
         await meshClient.sendEnvelope(envelope);
+        const deliveredAt = new Date().toISOString();
         dequeue(sosId);
         console.log('[SendingScreen] SOS delivered via mesh');
 
         timers.push(setTimeout(() => { setLitNodes(3); setPhase('delivered'); }, 3400));
-        timers.push(setTimeout(() => onDelivered(), 5000));
+        timers.push(setTimeout(() => onDelivered({ sosId, savedAt: now, deliveredAt }), 5000));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.warn('[SendingScreen] delivery failed, SOS stays queued:', msg);
         setErrorMsg(msg);
         setPhase('queued');
-        timers.push(setTimeout(() => onDelivered(), 3000));
+        timers.push(setTimeout(() => onDelivered({ sosId, savedAt: now, deliveredAt: null }), 3000));
       }
     };
 

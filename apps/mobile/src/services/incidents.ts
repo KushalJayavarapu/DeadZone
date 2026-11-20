@@ -137,6 +137,8 @@ export function sosToIncident(sos: SOSRequest): SOSIncident {
     reporterName: sos.reporterName,
     reporterPhone: sos.reporterPhone,
     hopStatus: 'delivered',
+    status: sos.status,
+    assignedTeams: sos.assignedTeams,
   };
 }
 

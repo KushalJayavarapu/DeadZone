@@ -75,6 +75,12 @@ export const SOSRequestSchema = z.object({
   geo: GeoPointSchema,
   status: SOSStatusSchema,
   assignedResponderId: z.uuid().optional(),
+  /**
+   * Teams a responder dispatched, by display name. Written by the command node
+   * when a `responder_status` envelope arrives (see status.ts). Optional, so
+   * every SOS stored before this field existed still validates.
+   */
+  assignedTeams: z.array(z.string().min(1).max(80)).max(5).optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime().optional(),
 });

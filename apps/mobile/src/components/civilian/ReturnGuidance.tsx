@@ -216,7 +216,7 @@ export default function ReturnGuidance({ onBack, onReconnected }: Props) {
             {distance}
           </div>
           <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '17px', color: '#8A97AC', marginTop: 4 }}>
-            metres to relay
+            metres to last connected spot
           </div>
         </div>
 
