@@ -7,6 +7,9 @@
   },
   "packageManager": "pnpm@11.25.0",
   "scripts": {
+    "demo": "node scripts/demo.mjs",
+    "demo:check": "node scripts/preflight.mjs",
+    "seed": "pnpm --filter @deadzone/api seed",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r --if-present run test"
   },
