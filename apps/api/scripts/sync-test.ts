@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
+import { mkdirSync } from "node:fs";
 import PouchDB from "pouchdb";
 import { couchBaseUrl, couchDbUrl, ensureDatabase, getCouchConfig, remotePouchDbOptions } from "./couchdb";
 
@@ -205,6 +206,7 @@ async function main(): Promise<void> {
   await ensureDatabase(config);
 
   // Fresh local db every run -- never inherits state from a previous run.
+  mkdirSync(path.dirname(LOCAL_DB_PATH), { recursive: true }); // .data/ is gitignored
   await new PouchDB(LOCAL_DB_PATH).destroy().catch(() => {});
   const db = new PouchDB<TestDoc>(LOCAL_DB_PATH);
   const remote = new PouchDB<TestDoc>(couchDbUrl(config), remotePouchDbOptions(config));
