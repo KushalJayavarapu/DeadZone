@@ -18,7 +18,7 @@ From the original project:
 
 ## What team SELECT \* from Winners added (Think to Impact 3.0, November 2026)
 
-Team: **Kushal Jayavarapu** (lead), **Poorvi Holla**, **Samana** (ECE, 2nd year, JSSATE Bengaluru).
+Team: **Kushal Jayavarapu** (lead), **Poorvi Holla** (ECE, 2nd year), **Samana** (ECE, 2nd year).
 
 The work is on branch `claude/project-thread-pydq17`, in commits dated 20 November 2026 and after.
 
