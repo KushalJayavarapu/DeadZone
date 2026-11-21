@@ -35,8 +35,8 @@ Everything needed to set up, run and rescue the live demo. Built for Think to Im
 
 ### Laptop
 1. Turn **on** the laptop's mobile hotspot (Windows: Settings → Network → Mobile hotspot; "Share over: Wi-Fi").
-2. Disconnect the laptop from venue Wi-Fi if you want to prove no internet. The demo doesn't need it.
-3. `pnpm demo --seed`. Wait for the **"DeadZone demo is up"** banner, and note the phone address it prints.
+2. **Disconnect the laptop from every other Wi-Fi network.** The demo doesn't need internet, and staying joined to another network makes the Wi-Fi card hop channels, which slowed the hotspot to 200–400 ms per round trip in testing.
+3. `pnpm demo --seed`. It builds the web app first (a few seconds), then serves the production bundle on :8443. Wait for the **"DeadZone demo is up"** banner, and note the phone address it prints. (`pnpm demo --dev` uses the hot-reload dev server instead; don't use it for phones, because its ~60 unbundled files can leave a phone blank on a slow hotspot.)
 4. Second terminal: `pnpm demo:check`. All checks must pass. The "no internet" line is a WARN if the laptop is online, which is fine.
 5. Browser → `http://localhost:8443` → **Responder** → any username, password **123456**. Leave it on the Map tab.
 
@@ -71,6 +71,7 @@ Everything needed to set up, run and rescue the live demo. Built for Think to Im
 | You see | Cause | Fix |
 |---|---|---|
 | Phone page won't load | The phone left the hotspot (no-internet auto-switch) | Rejoin and tap **Stay connected**. Check the IP. |
+| Phone shows a blank white page | Slow hotspot link, or the demo was started with `--dev` | Disconnect the laptop from other Wi-Fi. Restart with plain `pnpm demo --seed`. On iPhone, type the full `http://` address. |
 | `pnpm demo` says a port is in use | An old run is still going | Close the other terminal. Or Windows: `netstat -ano \| findstr :8443`, then `taskkill /PID <pid> /F`. |
 | SOS stays "Saved on this phone" | No link to the laptop | **Use it**: "it's holding it, nothing is lost", then fix the Wi-Fi and it resends. |
 | Pin lands near Bengaluru centre, not your location | GPS blocked on http | Expected without the Chrome flag above. Say: "location comes from GPS. On plain http the browser withholds it, and production runs HTTPS." |
