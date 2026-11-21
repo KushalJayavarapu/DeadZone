@@ -93,5 +93,5 @@ Everything needed to set up, run and rescue the live demo. Built for Think to Im
 | Phone that missed it catches up | `pnpm demo:check`: `GET /sos/:id` |
 | Triage rules | 43 unit tests, every START branch |
 | Offline map with labels | `pnpm demo:check` fetches a tile, glyphs and sprites through the app's own address |
-| Real phone over hotspot | Proven on hardware by the original SIH team (6 Sep 2026). **Re-verify on your own phone the night before.** |
-| CouchDB sync on reconnect | Original team's `pnpm --filter @deadzone/api sync-test` against a local CouchDB. Not part of this demo, so don't claim it live unless CouchDB is running. |
+| Real phone over hotspot | Proven on hardware on 6 Sep 2026. **Re-verify on your own phone the night before.** |
+| CouchDB sync on reconnect | `pnpm --filter @deadzone/api sync-test` against a local CouchDB. Not part of this demo, so don't claim it live unless CouchDB is running. |

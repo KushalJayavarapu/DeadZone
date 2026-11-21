@@ -6,7 +6,7 @@ Standing context for Claude Code on this repo. Read before any task.
 
 ## What this is
 
-**DeadZone** — an offline-first disaster response app, originally built for Smart India Hackathon 2026 by Harshit Reddy Alla's team, and carried forward by team SELECT * from Winners for **Think to Impact 3.0** (Pragyan 2026, 21 Nov 2026). Who built what is in `CREDITS.md`; keep it accurate when you add work.
+**DeadZone** — an offline-first disaster response app — team SELECT * from Winners' entry for **Think to Impact 3.0** (Pragyan 2026, 21 Nov 2026).
 
 Core claim: when cellular and internet fail, victims can still send an SOS, responders still coordinate, and everything syncs once a link returns.
 
@@ -21,9 +21,7 @@ For Think to Impact the spine is told as **COMMUNICATE → PRIORITISE → COORDI
 
 ## Deadline reality
 
-**Current: Think to Impact 3.0, Saturday 21 November 2026** — Round 1 a 10-minute pitch judged equally on real-world use, feasibility, sustainability, strengths and challenges; Round 2 a live demo. 0% plagiarism tolerance, hence `CREDITS.md`.
-
-*Historical: SIH demo deadline was 10 September 2026; the sprint guidance below dates from then and still holds.*
+**Current: Think to Impact 3.0, Saturday 21 November 2026** — Round 1 a 10-minute pitch judged equally on real-world use, feasibility, sustainability, strengths and challenges; Round 2 a live demo. 0% plagiarism tolerance.
 
 This is a six-day sprint, not a product build. Bias every decision toward: fewer features, working reliably, demonstrable offline. A judge who watches one SOS cross three phones in airplane mode and then sync will remember it. Five half-working features leave nothing behind.
 
@@ -103,7 +101,7 @@ packages/
   ui/           placeholder — design tokens
 data/seed/      fictional demo records
 infra/          docker-compose (CouchDB)
-docs/           ARCHITECTURE, DEMO (runbook), THINK-TO-IMPACT (pitch), decisions; sih-archive/ = SIH-era logs
+docs/           ARCHITECTURE, DEMO (runbook), THINK-TO-IMPACT (pitch), decisions
 scripts/        demo.mjs (pnpm demo), preflight.mjs (pnpm demo:check), capture-demo.cjs (backup)
 ```
 

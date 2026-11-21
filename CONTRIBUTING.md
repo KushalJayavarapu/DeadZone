@@ -1,6 +1,6 @@
 # Contributing to DeadZone
 
-This project was built for Smart India Hackathon 2026 and carried forward for Think to Impact 3.0 (see `CREDITS.md`). It is open source under the MIT License.
+This project is the Think to Impact 3.0 entry of team SELECT * from Winners. It is open source under the MIT License.
 
 ---
 
@@ -73,10 +73,10 @@ Include:
 
 ## After 10 September
 
-This project ships as-is for SIH evaluation. Post-demo maintenance and improvements are a different conversation. If you want to maintain this or build a production version, reach out to the core team.
+This project ships as-is for Think to Impact evaluation. Post-demo maintenance and improvements are a different conversation. If you want to maintain this or build a production version, reach out to the core team.
 
 ---
 
 ## Questions?
 
-Read `CLAUDE.md` for the architectural decisions. Read `docs/ARCHITECTURE.md` and `docs/decisions.md`; the SIH-era `docs/sih-archive/build_logs.md` records old build failures. If neither answers your question, open an issue.
+Read `CLAUDE.md` for the architectural decisions. Read `docs/ARCHITECTURE.md` and `docs/decisions.md`. If neither answers your question, open an issue.
