@@ -5,6 +5,12 @@
  *
  *   pnpm demo            start tile server, command node and web app
  *   pnpm demo --seed     load the fictional seed incidents first
+ *   pnpm demo --dev      serve the web app from the Vite dev server instead
+ *
+ * By default the web app is built once and served as a production bundle
+ * (a few compressed files), which phones on a laptop hotspot load quickly.
+ * The dev server's ~60 unbundled modules can leave a phone on a slow
+ * hotspot link stuck on a blank page.
  *
  * Works the same on Windows, macOS and Linux. Needs no internet, no CouchDB
  * and no Ollama: each of those is optional and the demo path does not touch
@@ -27,7 +33,7 @@ const pnpm = isWin ? "pnpm.cmd" : "pnpm";
 const SERVICES = [
   { name: "tiles ", color: 36, port: 3000, cmd: process.execPath, args: ["src/server.js"], cwd: "apps/dashboard" },
   { name: "node  ", color: 33, port: 4000, cmd: pnpm, args: ["dev"], cwd: "apps/api" },
-  { name: "app   ", color: 35, port: 8443, cmd: pnpm, args: ["dev"], cwd: "apps/mobile" },
+  { name: "app   ", color: 35, port: 8443, cmd: pnpm, args: args.has("--dev") ? ["dev"] : ["preview", "--strictPort"], cwd: "apps/mobile" },
 ];
 
 function lanAddresses() {
@@ -81,6 +87,15 @@ async function main() {
     const r = spawnSync(pnpm, ["seed"], { cwd: path.join(ROOT, "apps/api"), stdio: "inherit", shell: isWin });
     if (r.status !== 0) {
       console.error("Seeding failed; see the output above.");
+      process.exit(1);
+    }
+  }
+
+  if (!args.has("--dev")) {
+    console.log("Building the web app (production bundle)...");
+    const r = spawnSync(pnpm, ["build"], { cwd: path.join(ROOT, "apps/mobile"), stdio: "inherit", shell: isWin });
+    if (r.status !== 0) {
+      console.error("Web app build failed; see the output above. Or run with --dev.");
       process.exit(1);
     }
   }
